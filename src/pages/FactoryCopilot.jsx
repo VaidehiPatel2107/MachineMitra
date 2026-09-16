@@ -141,16 +141,18 @@ function FactoryCopilot({ onNavigate, sidebarOpen, setSidebarOpen }) {
 
         {/* Top Bar */}
         <header className="topbar">
-          <div>
+          <div className="mp-topbar-title">
             <h1>Factory Copilot</h1>
             <p>AI-powered maintenance assistant for your machines</p>
           </div>
 
-          <div className="user-profile">
-            <div className="profile-icon">A</div>
-            <div>
-              <strong>Admin</strong>
-              <span>Administrator</span>
+          <div className="mp-topbar-right">
+            <div className="user-profile">
+              <div className="profile-icon">A</div>
+              <div>
+                <strong>Admin</strong>
+                <span>Administrator</span>
+              </div>
             </div>
           </div>
         </header>

@@ -3,6 +3,22 @@ import FactoryCopilot from "./FactoryCopilot";
 import Machine from "./Machine";
 import Readings from "./Readings";
 
+// ─── Static fleet data ────────────────────────────────────────────────────────
+const FLEET_MACHINE = {
+  name: "CNC Machine 01",
+  id: "MM-CNC-001",
+  health: 92,
+  lastUpdated: "Just now",
+};
+
+const FLEET_READINGS = [
+  { label: "Temperature", value: "68",   unit: "°C",   statusClass: "status-good",    status: "Normal" },
+  { label: "Vibration",   value: "2.4",  unit: "mm/s", statusClass: "status-good",    status: "Normal" },
+  { label: "Power",       value: "4.8",  unit: "kW",   statusClass: "status-good",    status: "Normal" },
+  { label: "Operating Status", value: "Running", unit: "", statusClass: "status-neutral", status: "Since 08:30 AM" },
+];
+// ─────────────────────────────────────────────────────────────────────────────
+
 function FleetOverview() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activePage, setActivePage] = useState("dashboard");
@@ -70,19 +86,18 @@ function FleetOverview() {
 
         {/* Top Bar */}
         <header className="topbar">
-          <div>
+          <div className="mp-topbar-title">
             <h1>Machine Fleet Overview</h1>
-            <p>
-              Monitor your machines and their current health status.
-            </p>
+            <p>Monitor your machines and their current health status.</p>
           </div>
 
-          <div className="user-profile">
-            <div className="profile-icon">A</div>
-
-            <div>
-              <strong>Admin</strong>
-              <span>Administrator</span>
+          <div className="mp-topbar-right">
+            <div className="user-profile">
+              <div className="profile-icon">A</div>
+              <div>
+                <strong>Admin</strong>
+                <span>Administrator</span>
+              </div>
             </div>
           </div>
         </header>
@@ -129,10 +144,8 @@ function FleetOverview() {
 
             <div className="machine-header">
               <div>
-                <h3>CNC Machine 01</h3>
-                <span className="machine-id">
-                  Machine ID: MM-CNC-001
-                </span>
+                <h3>{FLEET_MACHINE.name}</h3>
+                <span className="machine-id">Machine ID: {FLEET_MACHINE.id}</span>
               </div>
 
               <span className="online-badge">
@@ -145,55 +158,34 @@ function FleetOverview() {
 
               <div>
                 <span>Machine Health</span>
-                <strong>92%</strong>
+                <strong>{FLEET_MACHINE.health}%</strong>
               </div>
 
               <div className="health-bar">
-                <div className="health-progress"></div>
+                <div className="health-progress" style={{ width: `${FLEET_MACHINE.health}%` }}></div>
               </div>
 
             </div>
 
             {/* Readings */}
             <div className="machine-readings">
-
-              <div className="reading">
-                <span>Temperature</span>
-                <strong>68°C</strong>
-                <small className="status-good">Normal</small>
-              </div>
-
-              <div className="reading">
-                <span>Vibration</span>
-                <strong>2.4 mm/s</strong>
-                <small className="status-good">Normal</small>
-              </div>
-
-              <div className="reading">
-                <span>Power</span>
-                <strong>4.8 kW</strong>
-                <small className="status-good">Normal</small>
-              </div>
-
-              <div className="reading">
-                <span>Operating Status</span>
-                <strong>Running</strong>
-                <small className="status-neutral">Since 08:30 AM</small>
-              </div>
-
+              {FLEET_READINGS.map((r) => (
+                <div key={r.label} className="reading">
+                  <span>{r.label}</span>
+                  <strong>
+                    {r.value}{r.unit && <small className="mp-unit"> {r.unit}</small>}
+                  </strong>
+                  <small className={r.statusClass}>{r.status}</small>
+                </div>
+              ))}
             </div>
 
             {/* Footer */}
             <div className="machine-footer">
-
-              <span>
-                Last updated: Just now
-              </span>
-
+              <span>Last updated: {FLEET_MACHINE.lastUpdated}</span>
               <button className="view-button" onClick={() => setActivePage("machine")}>
                 View Details →
               </button>
-
             </div>
 
           </div>
