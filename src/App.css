@@ -339,7 +339,12 @@ body {
   border: 1px solid #e1e5ea;
   border-radius: 10px;
   padding: 22px;
+  text-align: left;
 }
+
+.stat-card--blue  { border-left: 4px solid #2678d9; }
+.stat-card--green { border-left: 4px solid #198754; }
+.stat-card--orange{ border-left: 4px solid #d9822b; }
 
 .stat-title {
   display: block;
@@ -396,6 +401,11 @@ body {
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  transition: background 0.15s;
+}
+
+.add-machine:hover {
+  background: #1a5fb4;
 }
 
 /* Machine Card */
@@ -426,11 +436,28 @@ body {
 }
 
 .online-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: #e8f7ef;
   color: #198754;
   padding: 7px 11px;
   border-radius: 20px;
   font-size: 12px;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #198754;
+  display: inline-block;
+  animation: pulse-green 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
 }
 
 /* Health */
@@ -462,6 +489,7 @@ body {
   width: 92%;
   height: 100%;
   background: #35a66f;
+  border-radius: 10px;
 }
 
 /* Readings */
@@ -493,9 +521,12 @@ body {
 }
 
 .reading small {
-  color: #198754;
   font-size: 11px;
 }
+
+.status-good    { color: #198754; }
+.status-warning { color: #d9822b; }
+.status-neutral { color: #697586; }
 
 /* Footer */
 
@@ -834,4 +865,454 @@ body {
 .copilot-send-btn:disabled {
   background: #c4b5e8;
   cursor: not-allowed;
+}
+
+/* ── Machine Page ────────────────────────────────────────────────────────── */
+
+/* Topbar: title left, badge + profile right */
+.mp-topbar-title h1 {
+  margin: 0;
+  font-size: 27px;
+}
+
+.mp-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Section wrapper */
+.mp-section {
+  margin-bottom: 28px;
+}
+
+.mp-section-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #344051;
+}
+
+/* Health row */
+.mp-health-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.mp-health-labels {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 0;
+  min-width: 90px;
+}
+
+.mp-health-pct {
+  font-size: 28px;
+  font-weight: 700;
+  color: #172033;
+}
+
+.mp-health-status {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mp-health-bar {
+  flex: 1;
+}
+
+/* Info grid — two-column key/value rows */
+.mp-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 0;
+}
+
+.mp-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 22px;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 14px;
+}
+
+.mp-info-grid .mp-info-row:nth-child(odd) {
+  border-right: 1px solid #f0f2f5;
+}
+
+/* last row: clear bottom border if it's the only one in its row */
+.mp-info-grid .mp-info-row:last-child {
+  border-bottom: none;
+}
+
+.mp-info-label {
+  color: #697586;
+  font-size: 13px;
+}
+
+.mp-info-value {
+  font-weight: 600;
+  color: #172033;
+  font-size: 13px;
+  text-align: right;
+}
+
+.mp-next-date {
+  color: #d9822b;
+}
+
+/* Readings: 5-column grid, reuses .reading */
+.mp-readings-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+/* Unit inline with value */
+.mp-unit {
+  font-size: 13px;
+  font-weight: 400;
+  color: #697586;
+}
+
+/* No-alerts card */
+.mp-no-alerts {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.mp-no-alerts-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e8f7ef;
+  color: #198754;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mp-no-alerts strong {
+  display: block;
+  font-size: 14px;
+  color: #172033;
+}
+
+.mp-no-alerts p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #697586;
+}
+
+/* Maintenance card */
+.mp-maintenance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.mp-maint-info {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.mp-maint-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mp-maint-btn {
+  white-space: nowrap;
+}
+
+/* Bottom action row */
+.mp-actions {
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* ── Machine Page — Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .mp-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mp-info-grid .mp-info-row:nth-child(odd) {
+    border-right: none;
+  }
+
+  .mp-readings-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .mp-health-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .mp-health-bar {
+    width: 100%;
+  }
+
+  .mp-readings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mp-maintenance {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mp-topbar-right {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 500px) {
+  .mp-readings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mp-info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 12px 18px;
+  }
+
+  .mp-info-value {
+    text-align: left;
+  }
+}
+
+/* ── Readings Page ───────────────────────────────────────────────────────── */
+
+/* Live badge modifier */
+.readings-live-badge {
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
+/* Status bar — horizontal strip with dividers */
+.readings-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.readings-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 28px;
+  flex: 1 1 140px;
+}
+
+.readings-status-divider {
+  width: 1px;
+  align-self: stretch;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* Sensor cards grid */
+.readings-sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+.readings-sensor-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px 20px;
+}
+
+.readings-sensor-label {
+  font-size: 12px;
+  color: #697586;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.readings-sensor-value {
+  font-size: 30px;
+  font-weight: 700;
+  color: #172033;
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.readings-sensor-unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: #697586;
+}
+
+.readings-sensor-status {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Trend charts grid */
+.readings-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.readings-chart-card {
+  padding: 18px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.readings-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.readings-chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #344051;
+}
+
+.readings-chart-current {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.readings-sparkline {
+  width: 100%;
+  height: 80px;
+  display: block;
+}
+
+.readings-time-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #9aa4b2;
+  margin-top: 2px;
+}
+
+/* Sensor health table */
+.readings-health-table {
+  padding: 0;
+  overflow: hidden;
+}
+
+.readings-health-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 22px;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 14px;
+}
+
+.readings-health-row--last {
+  border-bottom: none;
+}
+
+.readings-health-name {
+  color: #344051;
+  font-weight: 500;
+}
+
+.readings-health-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.readings-health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Navigation buttons row */
+.readings-actions {
+  margin-top: 8px;
+}
+
+/* ── Readings responsive ────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .readings-sensor-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .readings-charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .readings-sensor-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .readings-charts-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .readings-status-bar {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 700px) {
+  .readings-sensor-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .readings-charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .readings-status-item {
+    flex: 1 1 100%;
+    border-bottom: 1px solid #f0f2f5;
+    padding: 12px 18px;
+  }
+  .readings-status-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 500px) {
+  .readings-sensor-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }

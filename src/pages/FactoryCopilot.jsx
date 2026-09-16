@@ -118,7 +118,7 @@ function FactoryCopilot({ onNavigate, sidebarOpen, setSidebarOpen }) {
             {sidebarOpen && <span>Dashboard</span>}
           </a>
 
-          <a className="nav-item" href="#">
+          <a className="nav-item" href="#" onClick={(e) => { e.preventDefault(); onNavigate("machine"); }}>
             <span className="nav-icon">⚙</span>
             {sidebarOpen && <span>Machine</span>}
           </a>

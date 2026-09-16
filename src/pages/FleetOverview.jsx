@@ -1,5 +1,7 @@
 import { useState } from "react";
 import FactoryCopilot from "./FactoryCopilot";
+import Machine from "./Machine";
+import Readings from "./Readings";
 
 function FleetOverview() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -7,6 +9,14 @@ function FleetOverview() {
 
   if (activePage === "copilot") {
     return <FactoryCopilot onNavigate={setActivePage} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />;
+  }
+
+  if (activePage === "machine") {
+    return <Machine onNavigate={setActivePage} />;
+  }
+
+  if (activePage === "readings") {
+    return <Readings onNavigate={setActivePage} />;
   }
 
   return (
@@ -37,12 +47,12 @@ function FleetOverview() {
             {sidebarOpen && <span>Dashboard</span>}
           </a>
 
-          <a className="nav-item" href="#">
+          <a className="nav-item" href="#" onClick={(e) => { e.preventDefault(); setActivePage("machine"); }}>
             <span className="nav-icon">⚙</span>
             {sidebarOpen && <span>Machine</span>}
           </a>
 
-          <a className="nav-item" href="#">
+          <a className="nav-item" href="#" onClick={(e) => { e.preventDefault(); setActivePage("readings"); }}>
             <span className="nav-icon">▥</span>
             {sidebarOpen && <span>Readings</span>}
           </a>
@@ -80,19 +90,19 @@ function FleetOverview() {
         {/* Statistics */}
         <section className="stats-grid">
 
-          <div className="stat-card">
+          <div className="stat-card stat-card--blue">
             <span className="stat-title">Overall Health</span>
             <strong className="stat-value">92%</strong>
             <span className="stat-status good">Healthy</span>
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card stat-card--green">
             <span className="stat-title">Running Machines</span>
             <strong className="stat-value">1</strong>
             <span className="stat-status good">Online</span>
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card stat-card--orange">
             <span className="stat-title">Active Alerts</span>
             <strong className="stat-value">2</strong>
             <span className="stat-status warning">Needs Attention</span>
@@ -126,7 +136,7 @@ function FleetOverview() {
               </div>
 
               <span className="online-badge">
-                ● Online
+                <span className="pulse-dot"></span> Online
               </span>
             </div>
 
@@ -150,25 +160,25 @@ function FleetOverview() {
               <div className="reading">
                 <span>Temperature</span>
                 <strong>68°C</strong>
-                <small>Normal</small>
+                <small className="status-good">Normal</small>
               </div>
 
               <div className="reading">
                 <span>Vibration</span>
                 <strong>2.4 mm/s</strong>
-                <small>Normal</small>
+                <small className="status-good">Normal</small>
               </div>
 
               <div className="reading">
                 <span>Power</span>
                 <strong>4.8 kW</strong>
-                <small>Normal</small>
+                <small className="status-good">Normal</small>
               </div>
 
               <div className="reading">
                 <span>Operating Status</span>
                 <strong>Running</strong>
-                <small>Since 08:30 AM</small>
+                <small className="status-neutral">Since 08:30 AM</small>
               </div>
 
             </div>
@@ -180,7 +190,7 @@ function FleetOverview() {
                 Last updated: Just now
               </span>
 
-              <button className="view-button">
+              <button className="view-button" onClick={() => setActivePage("machine")}>
                 View Details →
               </button>
 
