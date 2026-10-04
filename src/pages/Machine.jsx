@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -20,14 +20,12 @@ import {
   Zap
 } from 'lucide-react';
 
-const DRILLER_DATA = {
+// Static asset metadata — not exposed by any backend endpoint
+const STATIC_ASSET = {
   name: 'CNC Industrial Drilling Machine',
   id: 'MM-DRL-001',
   model: 'Automated Precision Drill Unit',
   location: 'Bay 3 — Precision Fabrication',
-  status: 'running',
-  statusLabel: 'Online & Drilling Active',
-  health: 93,
   operatingHours: 1840,
   commissionDate: '10 Feb 2025',
   lastMaintenance: '15 Sep 2026',
@@ -39,18 +37,129 @@ const DRILLER_DATA = {
     { id: 'feed', name: 'Z-Axis Feed Servo Actuator', health: 88, status: 'Normal Backlash', warning: false },
     { id: 'coolant', name: 'Coolant & Lubrication Jet', health: 79, status: 'Check Pressure Filter', warning: true },
   ],
-  readings: [
-    { label: 'Drill Head Temp', value: 64.8, unit: '°C', max: 95, status: 'Optimal', warning: false, icon: Thermometer },
-    { label: 'Vibration RMS', value: 1.8, unit: 'mm/s', max: 4.5, status: 'Normal', warning: false, icon: Activity },
-    { label: 'Spindle Velocity', value: 2850, unit: 'RPM', max: 4000, status: 'Nominal', warning: false, icon: Gauge },
-    { label: 'Drill Active Power', value: 5.2, unit: 'kW', max: 12.0, status: 'Optimal', warning: false, icon: Zap },
-    { label: 'Feed Torque', value: 18.4, unit: 'Nm', max: 35.0, status: 'Balanced', warning: false, icon: Cpu },
-    { label: 'Coolant Flow', value: 3.2, unit: 'L/min', max: 5.0, status: 'Flow Steady', warning: false, icon: Sliders },
-  ],
 };
 
-export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavigateToReadings }) {
-  const [machine, setMachine] = useState(DRILLER_DATA);
+// Maps backend operational_state → human-readable status label
+function deriveStatusLabel(operationalState) {
+  const map = {
+    RUNNING_NORMAL: 'Online & Drilling Active',
+    IDLE: 'Idle — Motor Spinning',
+    OVERHEATING: 'Alert: Thermal Overrun',
+    ABNORMAL_VIBRATION: 'Alert: Abnormal Vibration',
+    OVERLOAD: 'Alert: Motor Overload',
+    OFF: 'Offline',
+  };
+  return map[operationalState] ?? operationalState ?? 'Online';
+}
+
+// Build the readings array from a live-telemetry API response object.
+// Falls back to placeholder dashes when data is null (loading state).
+function buildReadings(live) {
+  return [
+    {
+      label: 'Drill Head Temp',
+      value: live ? live.temperature : '—',
+      unit: '°C',
+      max: 95,
+      warning: live ? live.temperature >= 75 : false,
+      icon: Thermometer,
+    },
+    {
+      label: 'Vibration RMS',
+      value: live ? live.vibration : '—',
+      unit: 'mm/s',
+      max: 4.5,
+      warning: live ? live.vibration > 2.2 : false,
+      icon: Activity,
+    },
+    {
+      label: 'Spindle Velocity',
+      value: live ? live.drillSpeedRpm : '—',
+      unit: 'RPM',
+      max: 4000,
+      warning: false,
+      icon: Gauge,
+    },
+    {
+      label: 'Drill Active Power',
+      value: live ? live.powerKw : '—',
+      unit: 'kW',
+      max: 12.0,
+      warning: live ? live.powerKw > 7.2 : false,
+      icon: Zap,
+    },
+    {
+      label: 'Feed Torque',
+      value: live ? live.torqueNm : '—',
+      unit: 'Nm',
+      max: 35.0,
+      warning: false,
+      icon: Cpu,
+    },
+    {
+      label: 'Sound Level',
+      value: live ? live.soundDb : '—',
+      unit: 'dB',
+      max: 110,
+      warning: live ? live.soundDb > 95 : false,
+      icon: Sliders,
+    },
+  ];
+}
+
+const API_BASE = 'http://localhost:8000';
+
+export default function Machine({ machineId = 'MM-DRL-001', onNavigateToFleet, onNavigateToCopilot, onNavigateToReadings }) {
+  // ── Live data from API ──────────────────────────────────────────────────────
+  const [liveData, setLiveData] = useState(null);       // /telemetry/live response
+  const [healthData, setHealthData] = useState(null);   // /machines/.../health response
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
+
+  // ── Static + derived machine state ─────────────────────────────────────────
+  const machine = useMemo(() => ({
+    ...STATIC_ASSET,
+    health: healthData ? healthData.health_score : STATIC_ASSET.health ?? 93,
+    statusLabel: healthData
+      ? deriveStatusLabel(healthData.current_status)
+      : deriveStatusLabel(liveData?.operational_state),
+    activeAlarms: healthData?.active_alarms ?? [],
+    readings: buildReadings(liveData),
+  }), [liveData, healthData]);
+
+  // ── Fetch both endpoints in parallel ───────────────────────────────────────
+  const fetchData = useCallback(async () => {
+    try {
+      const [healthRes, liveRes] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/machines/${machineId}/health`),
+        fetch(`${API_BASE}/api/v1/telemetry/live/${machineId}`),
+      ]);
+
+      if (!healthRes.ok && !liveRes.ok) {
+        throw new Error(`API unreachable (${healthRes.status})`);
+      }
+
+      if (healthRes.ok) {
+        setHealthData(await healthRes.json());
+      }
+      if (liveRes.ok) {
+        setLiveData(await liveRes.json());
+      }
+      setApiError(null);
+    } catch (err) {
+      setApiError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [machineId]);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // refresh every 10 s
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // ── Other UI state ──────────────────────────────────────────────────────────
   const [isRunningDiag, setIsRunningDiag] = useState(false);
   const [diagResult, setDiagResult] = useState(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -68,11 +177,11 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
   };
 
   const daysUntilNextMaint = useMemo(() => {
-    const target = new Date(machine.nextMaintenance);
-    const simulatedToday = new Date('2026-09-29');
-    const diffDays = Math.ceil((target - simulatedToday) / (1000 * 60 * 60 * 24));
+    const target = new Date(STATIC_ASSET.nextMaintenance);
+    const today = new Date();
+    const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
-  }, [machine.nextMaintenance]);
+  }, []);
 
   const handleRunDiagnostics = () => {
     setIsRunningDiag(true);
@@ -93,20 +202,13 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
   const handleLogMaintenanceSubmit = (e) => {
     e.preventDefault();
     if (!maintForm.tasks.trim() || !maintForm.nextDate) return;
-
-    setMachine((prev) => ({
-      ...prev,
-      lastMaintenance: '29 Sep 2026',
-      nextMaintenance: maintForm.nextDate,
-      health: 98,
-      subsystems: prev.subsystems.map((sub) =>
-        sub.id === 'coolant' ? { ...sub, health: 95, status: 'Filter Flushed', warning: false } : sub
-      ),
-    }));
-
     setIsLogModalOpen(false);
     showToast(`Maintenance logged successfully for ${machine.id}.`);
   };
+
+  // ── Health ring colour: red when score < 60, amber < 80, else green ────────
+  const healthRingClass =
+    machine.health < 60 ? 'text-rose-500' : machine.health < 80 ? 'text-amber-500' : 'text-emerald-500';
 
   return (
     <div className="w-full space-y-6 pb-12">
@@ -114,6 +216,22 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs sm:text-sm border border-slate-700 animate-fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* API Error Banner */}
+      {apiError && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+          <span>
+            <strong>Backend unreachable:</strong> {apiError}. Sensor values shown below are from the last successful fetch or placeholders.
+          </span>
+          <button
+            onClick={fetchData}
+            className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 font-semibold transition-colors cursor-pointer"
+          >
+            <RefreshCw className="w-3 h-3" /> Retry
+          </button>
         </div>
       )}
 
@@ -147,6 +265,16 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={fetchData}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
+            title="Refresh from API"
+          >
+            <RefreshCw className={`w-4 h-4 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>{isLoading ? 'Fetching…' : 'Refresh'}</span>
+          </button>
+
           <button
             onClick={handleRunDiagnostics}
             disabled={isRunningDiag}
@@ -215,28 +343,34 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
 
             <div className="flex flex-col sm:flex-row items-center gap-6 py-6 border-b border-slate-100">
               <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
-                <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    className="text-slate-100"
-                    strokeWidth="3.2"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-emerald-500"
-                    strokeDasharray={`${machine.health}, 100`}
-                    strokeWidth="3.2"
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-slate-900 tracking-tight">{machine.health}%</span>
-                  <span className="text-[10px] uppercase font-semibold text-slate-400">Score</span>
-                </div>
+                {isLoading && !healthData ? (
+                  <div className="w-28 h-28 rounded-full bg-slate-100 animate-pulse" />
+                ) : (
+                  <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-slate-100"
+                      strokeWidth="3.2"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className={healthRingClass}
+                      strokeDasharray={`${machine.health}, 100`}
+                      strokeWidth="3.2"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                )}
+                {!isLoading && (
+                  <div className="absolute flex flex-col items-center justify-center">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight">{machine.health}%</span>
+                    <span className="text-[10px] uppercase font-semibold text-slate-400">Score</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1 text-center sm:text-left">
@@ -244,6 +378,16 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
                 <p className="text-xs text-slate-500 leading-relaxed max-w-md">
                   Drill head radial runout is measured within 0.004 mm tolerance. Active vibration analysis indicates smooth penetration through composite and steel stock.
                 </p>
+                {machine.activeAlarms.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {machine.activeAlarms.map((alarm, i) => (
+                      <li key={i} className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                        {alarm}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 
@@ -319,7 +463,7 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-700">
                   Next Maintenance Inspection
                 </span>
-                <div className="text-base font-bold text-slate-900 mt-0.5">{machine.nextMaintenance}</div>
+                <div className="text-base font-bold text-slate-900 mt-0.5">{STATIC_ASSET.nextMaintenance}</div>
                 <span className="text-xs text-slate-500">Tool wear calibration cycle</span>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white">
@@ -389,7 +533,8 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
           {machine.readings.map((r) => {
             const IconComp = r.icon;
-            const pct = Math.min(100, (r.value / r.max) * 100);
+            const numericValue = typeof r.value === 'number';
+            const pct = numericValue ? Math.min(100, (r.value / r.max) * 100) : 0;
             return (
               <div
                 key={r.label}
@@ -402,12 +547,16 @@ export default function Machine({ onNavigateToFleet, onNavigateToCopilot, onNavi
                     <span className="text-[11px] font-medium truncate max-w-[90px]">{r.label}</span>
                     <IconComp className={`w-3.5 h-3.5 ${r.warning ? 'text-amber-500' : 'text-slate-400'}`} />
                   </div>
-                  <div className="text-base sm:text-lg font-bold text-slate-900">
-                    {r.value} <span className="text-[11px] font-normal text-slate-400">{r.unit}</span>
-                  </div>
+                  {isLoading && !liveData ? (
+                    <div className="h-6 w-16 rounded bg-slate-100 animate-pulse mt-1" />
+                  ) : (
+                    <div className="text-base sm:text-lg font-bold text-slate-900">
+                      {r.value} <span className="text-[11px] font-normal text-slate-400">{r.unit}</span>
+                    </div>
+                  )}
                   <div className="mt-2 w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${r.warning ? 'bg-amber-500' : 'bg-indigo-600'}`}
+                      className={`h-full rounded-full transition-all duration-500 ${r.warning ? 'bg-amber-500' : 'bg-indigo-600'}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
