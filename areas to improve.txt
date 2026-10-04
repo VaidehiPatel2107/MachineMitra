@@ -1,0 +1,9 @@
+- remove machine diagonistic option on nav bar bcz "view details" option shows it when clicked..
+
+- remove the quick test credentials thingy 
+- print machinemitra Ai logo and heading in the index page a little bigger like professional sites.
+- near logout option in the dashboard there s this "100 hz bus" thingy remove that
+- there should not be 4 cards , only one card in the main screen as we are preparing it as prototype..the one of driller machine as we are actually gonna work with that
+- also a log of all the readings must be there shown..and the average readings of a particular time period should be stored in database 
+- also when opened in another pc by my team mate the dashboard appears to not cover all the area like its not adaptive..as there s sm blank space left on the screen so need to improve that
+- the data comes in json format
