@@ -1,31 +1,22 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import Login from "./pages/Login";
 import FleetOverview from "./pages/FleetOverview";
 import Machine from "./pages/Machine";
 import Readings from "./pages/Readings";
 import FactoryCopilot from "./pages/FactoryCopilot";
-import { LayoutDashboard, Wrench, Activity, Bot, LogOut } from "lucide-react";
-import "./App.css";
+import { LayoutDashboard, Activity, Bot, LogOut } from "lucide-react";
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentPage, setCurrentPage] = useState("dashboard");
-  // 1. Add state to remember which machine was clicked:
-  const [selectedMachineId, setSelectedMachineId] = useState("MM-CNC-001");
+  const [selectedMachineId, setSelectedMachineId] = useState("MM-DRL-001");
 
-  const handleLoginSuccess = (userData) => {
-    console.log("Authenticated:", userData);
+  const handleLoginSuccess = () => {
     setIsAuthenticated(true);
   };
 
   if (!isAuthenticated) {
-    return (
-      <Login
-        onLoginSuccess={handleLoginSuccess}
-        onLogin={handleLoginSuccess}
-        onSuccess={handleLoginSuccess}
-      />
-    );
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   const renderActivePage = () => {
@@ -33,9 +24,8 @@ export default function App() {
       case "machine":
         return (
           <Machine
-            machineId={selectedMachineId} // 2. Pass selected ID here
-            onNavigate={setCurrentPage}
-            onBack={() => setCurrentPage("dashboard")}
+            machineId={selectedMachineId}
+            onNavigateToFleet={() => setCurrentPage("dashboard")}
             onNavigateToReadings={() => setCurrentPage("readings")}
             onNavigateToCopilot={() => setCurrentPage("copilot")}
           />
@@ -44,14 +34,12 @@ export default function App() {
         return (
           <Readings
             machineId={selectedMachineId}
-            onNavigate={setCurrentPage}
-            onBack={() => setCurrentPage("dashboard")}
+            onNavigateToFleet={() => setCurrentPage("dashboard")}
           />
         );
       case "copilot":
         return (
           <FactoryCopilot
-            onNavigate={setCurrentPage}
             onBack={() => setCurrentPage("dashboard")}
           />
         );
@@ -59,12 +47,11 @@ export default function App() {
       default:
         return (
           <FleetOverview
-            onNavigate={setCurrentPage}
-            // 3. Save the clicked machine's ID before opening the machine page:
             onNavigateToMachine={(machineId) => {
               if (machineId) setSelectedMachineId(machineId);
               setCurrentPage("machine");
             }}
+            onNavigateToReadings={() => setCurrentPage("readings")}
             onNavigateToCopilot={() => setCurrentPage("copilot")}
           />
         );
@@ -73,34 +60,37 @@ export default function App() {
 
   const navItems = [
     { id: "dashboard", label: "Fleet Command", icon: LayoutDashboard },
-    { id: "machine", label: "Machine Diagnostics", icon: Wrench },
     { id: "readings", label: "Live Telemetry", icon: Activity },
     { id: "copilot", label: "Factory Copilot", icon: Bot, badge: "AI" },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-6 py-3 shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col w-full antialiased selection:bg-indigo-100 selection:text-indigo-900">
+      {/* Fluid Header */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 lg:px-12 py-3.5 shadow-xs">
+        <div className="w-full max-w-[1920px] mx-auto flex items-center justify-between gap-4">
+          
+          {/* Logo & Headline */}
           <div 
             onClick={() => setCurrentPage("dashboard")}
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-3.5 cursor-pointer group select-none"
           >
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
               M
             </div>
             <div>
-              <div className="flex items-center gap-1.5 font-bold text-slate-900 text-sm tracking-tight leading-none">
-                <span>MachineMitra</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-slate-900 text-lg tracking-tight">MachineMitra</span>
+                <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
                   AI
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 font-medium">Predictive IoT Suite</span>
+              <p className="text-xs text-slate-500 font-medium hidden sm:block">Industrial IoT Telemetry Suite</p>
             </div>
           </div>
 
-          <nav className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+          {/* Navigation Bar */}
+          <nav className="flex items-center gap-1.5 bg-slate-100/90 p-1.5 rounded-xl border border-slate-200/70">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
@@ -108,16 +98,16 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => setCurrentPage(item.id)}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                     isActive
                       ? "bg-white text-indigo-600 shadow-xs border border-slate-200/80"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className="text-[9px] px-1 rounded bg-indigo-100 text-indigo-700 font-mono font-bold">
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700 font-mono font-bold">
                       {item.badge}
                     </span>
                   )}
@@ -126,24 +116,22 @@ export default function App() {
             })}
           </nav>
 
+          {/* User Sign Out */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>100 Hz Bus</span>
-            </div>
-
             <button
               onClick={() => setIsAuthenticated(false)}
-              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+              className="flex items-center gap-1.5 px-3 py-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-rose-200"
               title="Lock Session / Log Out"
             >
               <LogOut className="w-4 h-4" />
+              <span className="text-xs font-semibold hidden md:inline">Sign Out</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      {/* Main Container */}
+      <main className="flex-1 w-full max-w-[1920px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-8">
         {renderActivePage()}
       </main>
     </div>
